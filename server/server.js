@@ -10,6 +10,8 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const vehicleRoutes = require("./routes/vehicleRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
+const fuelRoutes = require("./routes/fuelRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 dotenv.config();
 
@@ -27,6 +29,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/services", serviceRoutes);
+app.use("/api/fuel", fuelRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // Test Route
 app.get("/", (req, res) => {

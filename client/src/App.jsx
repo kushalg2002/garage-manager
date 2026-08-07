@@ -8,6 +8,8 @@ import Vehicles from "./pages/Vehicles";
 import AddVehicle from "./pages/AddVehicle";
 import EditVehicle from "./pages/EditVehicle";
 import Services from "./pages/Services";
+import Fuel from "./pages/Fuel";
+import VehicleDetails from "./pages/VehicleDetails";
 
 function App() {
   return (
@@ -19,6 +21,8 @@ function App() {
       <Route path="/add-vehicle" element={<AddVehicle />} />
       <Route path="/edit-vehicle/:id" element={<EditVehicle />} />
       <Route path="/services" element={<Services />} />
+      <Route path="/fuel" element={<Fuel />} />
+      <Route path="/vehicle/:id" element={<VehicleDetails />} />
     </Routes>
   );
 }

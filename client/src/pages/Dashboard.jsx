@@ -10,8 +10,16 @@ function Dashboard() {
   const [search, setSearch] = useState("");
   const [fuelFilter, setFuelFilter] = useState("All");
 
+  const [stats, setStats] = useState({
+    totalVehicles: 0,
+    totalServices: 0,
+    totalFuelEntries: 0,
+    totalExpense: 0,
+  });
+
   useEffect(() => {
     fetchVehicles();
+    fetchDashboardStats();
   }, []);
 
   const fetchVehicles = async () => {
@@ -34,6 +42,22 @@ function Dashboard() {
       } else {
         alert(error.message);
       }
+    }
+  };
+
+  const fetchDashboardStats = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await api.get("/dashboard", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setStats(response.data.stats);
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -67,19 +91,38 @@ function Dashboard() {
           }}
         >
           <DashboardStats
-  title="Total Vehicles"
-  value={vehicles.length}
-/>
+            title="Total Vehicles"
+            value={stats.totalVehicles}
+          />
 
-<DashboardStats
-  title="Petrol Vehicles"
-  value={vehicles.filter((v) => v.fuelType === "Petrol").length}
-/>
+          <DashboardStats
+            title="Petrol Vehicles"
+            value={
+              vehicles.filter((v) => v.fuelType === "Petrol").length
+            }
+          />
 
-<DashboardStats
-  title="Diesel Vehicles"
-  value={vehicles.filter((v) => v.fuelType === "Diesel").length}
-/>
+          <DashboardStats
+            title="Diesel Vehicles"
+            value={
+              vehicles.filter((v) => v.fuelType === "Diesel").length
+            }
+          />
+
+          <DashboardStats
+            title="Services"
+            value={stats.totalServices}
+          />
+
+          <DashboardStats
+            title="Fuel Entries"
+            value={stats.totalFuelEntries}
+          />
+
+          <DashboardStats
+            title="Expenses"
+            value={`₹${stats.totalExpense}`}
+          />
         </div>
 
         <div style={{ marginBottom: "20px" }}>

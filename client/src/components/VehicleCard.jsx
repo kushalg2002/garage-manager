@@ -101,6 +101,21 @@ function VehicleCard({ vehicle }) {
         >
           Delete
         </Button>
+
+        <button
+  onClick={() => navigate(`/vehicle/${vehicle._id}`)}
+  style={{
+    background: "#2e7d32",
+    color: "white",
+    border: "none",
+    padding: "8px 15px",
+    borderRadius: "5px",
+    cursor: "pointer",
+    marginTop: "10px",
+  }}
+>
+  👁 View Details
+</button>
       </CardActions>
     </Card>
   );

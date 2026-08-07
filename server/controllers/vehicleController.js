@@ -125,9 +125,39 @@ const deleteVehicle = async (req, res) => {
   }
 };
 
+// Get Single Vehicle
+const getVehicleById = async (req, res) => {
+  try {
+    const vehicle = await Vehicle.findOne({
+      _id: req.params.id,
+      owner: req.user.id,
+    });
+
+    if (!vehicle) {
+      return res.status(404).json({
+        success: false,
+        message: "Vehicle Not Found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      vehicle,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
 module.exports = {
   addVehicle,
   getMyVehicles,
   updateVehicle,
   deleteVehicle,
+  getVehicleById,
 };

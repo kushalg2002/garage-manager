@@ -1,33 +1,35 @@
-const Service = require("../models/Service");
+const Fuel = require("../models/Fuel");
 
-// Add Service
-const addService = async (req, res) => {
+// Add Fuel
+const addFuel = async (req, res) => {
   try {
     const {
       vehicle,
-      serviceName,
-      serviceDate,
-      garageName,
-      cost,
+      fuelType,
+      litres,
+      amount,
       odometer,
+      fuelDate,
+      station,
       notes,
     } = req.body;
 
-    const service = await Service.create({
+    const fuel = await Fuel.create({
       vehicle,
       owner: req.user.id,
-      serviceName,
-      serviceDate,
-      garageName,
-      cost,
+      fuelType,
+      litres,
+      amount,
       odometer,
+      fuelDate,
+      station,
       notes,
     });
 
     res.status(201).json({
       success: true,
-      message: "Service Added Successfully",
-      service,
+      message: "Fuel Entry Added Successfully",
+      fuel,
     });
   } catch (error) {
     console.error(error);
@@ -39,17 +41,17 @@ const addService = async (req, res) => {
   }
 };
 
-// Get My Services
-const getMyServices = async (req, res) => {
+// Get Fuel History
+const getFuelHistory = async (req, res) => {
   try {
-    const services = await Service.find({
+    const fuelHistory = await Fuel.find({
       owner: req.user.id,
     }).populate("vehicle", "brand model registrationNumber");
 
     res.status(200).json({
       success: true,
-      count: services.length,
-      services,
+      count: fuelHistory.length,
+      fuelHistory,
     });
   } catch (error) {
     console.error(error);
@@ -61,26 +63,26 @@ const getMyServices = async (req, res) => {
   }
 };
 
-// Update Service
-const updateService = async (req, res) => {
+// Update Fuel Entry
+const updateFuel = async (req, res) => {
   try {
-    const service = await Service.findById(req.params.id);
+    const fuel = await Fuel.findById(req.params.id);
 
-    if (!service) {
+    if (!fuel) {
       return res.status(404).json({
         success: false,
-        message: "Service Not Found",
+        message: "Fuel Entry Not Found",
       });
     }
 
-    if (service.owner.toString() !== req.user.id) {
+    if (fuel.owner.toString() !== req.user.id) {
       return res.status(401).json({
         success: false,
         message: "Unauthorized",
       });
     }
 
-    const updatedService = await Service.findByIdAndUpdate(
+    const updatedFuel = await Fuel.findByIdAndUpdate(
       req.params.id,
       req.body,
       {
@@ -90,8 +92,8 @@ const updateService = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Service Updated Successfully",
-      service: updatedService,
+      message: "Fuel Entry Updated Successfully",
+      fuel: updatedFuel,
     });
   } catch (error) {
     console.error(error);
@@ -103,30 +105,30 @@ const updateService = async (req, res) => {
   }
 };
 
-// Delete Service
-const deleteService = async (req, res) => {
+// Delete Fuel Entry
+const deleteFuel = async (req, res) => {
   try {
-    const service = await Service.findById(req.params.id);
+    const fuel = await Fuel.findById(req.params.id);
 
-    if (!service) {
+    if (!fuel) {
       return res.status(404).json({
         success: false,
-        message: "Service Not Found",
+        message: "Fuel Entry Not Found",
       });
     }
 
-    if (service.owner.toString() !== req.user.id) {
+    if (fuel.owner.toString() !== req.user.id) {
       return res.status(401).json({
         success: false,
         message: "Unauthorized",
       });
     }
 
-    await Service.findByIdAndDelete(req.params.id);
+    await Fuel.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       success: true,
-      message: "Service Deleted Successfully",
+      message: "Fuel Entry Deleted Successfully",
     });
   } catch (error) {
     console.error(error);
@@ -138,18 +140,18 @@ const deleteService = async (req, res) => {
   }
 };
 
-// Get Services By Vehicle
-const getServicesByVehicle = async (req, res) => {
+// Get Fuel History By Vehicle
+const getFuelByVehicle = async (req, res) => {
   try {
-    const services = await Service.find({
+    const fuelHistory = await Fuel.find({
       vehicle: req.params.vehicleId,
       owner: req.user.id,
-    }).sort({ serviceDate: -1 });
+    }).sort({ fuelDate: -1 });
 
     res.status(200).json({
       success: true,
-      count: services.length,
-      services,
+      count: fuelHistory.length,
+      fuelHistory,
     });
   } catch (error) {
     console.error(error);
@@ -162,9 +164,9 @@ const getServicesByVehicle = async (req, res) => {
 };
 
 module.exports = {
-  addService,
-  getMyServices,
-  updateService,
-  deleteService,
-  getServicesByVehicle,
+  addFuel,
+  getFuelHistory,
+  updateFuel,
+  deleteFuel,
+  getFuelByVehicle,
 };
