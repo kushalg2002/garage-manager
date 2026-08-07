@@ -6,6 +6,8 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Vehicles from "./pages/Vehicles";
 import AddVehicle from "./pages/AddVehicle";
+import EditVehicle from "./pages/EditVehicle";
+import Services from "./pages/Services";
 
 function App() {
   return (
@@ -15,6 +17,8 @@ function App() {
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/vehicles" element={<Vehicles />} />
       <Route path="/add-vehicle" element={<AddVehicle />} />
+      <Route path="/edit-vehicle/:id" element={<EditVehicle />} />
+      <Route path="/services" element={<Services />} />
     </Routes>
   );
 }
