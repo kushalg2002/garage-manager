@@ -54,20 +54,30 @@ function VehicleCard({ vehicle }) {
     >
       <CardContent>
         <Typography variant="h5" fontWeight="bold" gutterBottom>
-          <DirectionsCar sx={{ mr: 1, verticalAlign: "middle" }} />
+          <DirectionsCar
+            sx={{
+              mr: 1,
+              verticalAlign: "middle",
+            }}
+          />
           {vehicle.brand} {vehicle.model}
         </Typography>
 
         <Stack spacing={1}>
           <Typography>
-            <strong>Registration:</strong> {vehicle.registrationNumber}
+            <strong>Registration:</strong>{" "}
+            {vehicle.registrationNumber}
           </Typography>
 
           <Typography>
             <CalendarToday
-              sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }}
+              sx={{
+                fontSize: 18,
+                mr: 1,
+                verticalAlign: "middle",
+              }}
             />
-            {vehicle.year}
+            <strong>Year:</strong> {vehicle.year}
           </Typography>
 
           <Chip
@@ -79,21 +89,36 @@ function VehicleCard({ vehicle }) {
 
           <Typography>
             <Speed
-              sx={{ fontSize: 18, mr: 1, verticalAlign: "middle" }}
+              sx={{
+                fontSize: 18,
+                mr: 1,
+                verticalAlign: "middle",
+              }}
             />
-            {vehicle.odometer} km
+            <strong>Odometer:</strong> {vehicle.odometer} km
           </Typography>
         </Stack>
       </CardContent>
 
-      <CardActions>
+      <CardActions
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 1,
+          p: 2,
+        }}
+      >
+        {/* Edit */}
         <Button
           variant="contained"
-          onClick={() => navigate(`/edit-vehicle/${vehicle._id}`)}
+          onClick={() =>
+            navigate(`/edit-vehicle/${vehicle._id}`)
+          }
         >
           Edit
         </Button>
 
+        {/* Delete */}
         <Button
           variant="contained"
           color="error"
@@ -102,20 +127,60 @@ function VehicleCard({ vehicle }) {
           Delete
         </Button>
 
-        <button
-  onClick={() => navigate(`/vehicle/${vehicle._id}`)}
-  style={{
-    background: "#2e7d32",
-    color: "white",
-    border: "none",
-    padding: "8px 15px",
-    borderRadius: "5px",
-    cursor: "pointer",
-    marginTop: "10px",
-  }}
->
-  👁 View Details
-</button>
+        {/* Vehicle Details */}
+        <Button
+          variant="contained"
+          color="success"
+          onClick={() =>
+            navigate(`/vehicle/${vehicle._id}`)
+          }
+        >
+          View Details
+        </Button>
+
+        {/* Add Service */}
+        <Button
+          variant="outlined"
+          color="primary"
+          onClick={() =>
+            navigate(`/add-service/${vehicle._id}`)
+          }
+        >
+          🔧 Add Service
+        </Button>
+
+        {/* Service History */}
+        <Button
+          variant="outlined"
+          color="secondary"
+          onClick={() =>
+            navigate(`/services?vehicle=${vehicle._id}`)
+          }
+        >
+          📋 Services
+        </Button>
+
+        {/* Add Fuel */}
+        <Button
+          variant="outlined"
+          color="warning"
+          onClick={() =>
+            navigate(`/add-fuel/${vehicle._id}`)
+          }
+        >
+          ⛽ Add Fuel
+        </Button>
+
+        {/* Fuel History */}
+        <Button
+          variant="outlined"
+          color="info"
+          onClick={() =>
+            navigate(`/fuel?vehicle=${vehicle._id}`)
+          }
+        >
+          📋 Fuel History
+        </Button>
       </CardActions>
     </Card>
   );

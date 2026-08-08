@@ -44,9 +44,22 @@ const addFuel = async (req, res) => {
 // Get Fuel History
 const getFuelHistory = async (req, res) => {
   try {
-    const fuelHistory = await Fuel.find({
+    const filter = {
       owner: req.user.id,
-    }).populate("vehicle", "brand model registrationNumber");
+    };
+
+    // If a vehicle ID is provided,
+    // show fuel history only for that vehicle
+    if (req.query.vehicle) {
+      filter.vehicle = req.query.vehicle;
+    }
+
+    const fuelHistory = await Fuel.find(filter)
+      .populate(
+        "vehicle",
+        "brand model registrationNumber"
+      )
+      .sort({ fuelDate: -1 });
 
     res.status(200).json({
       success: true,
