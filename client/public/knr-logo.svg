@@ -1,0 +1,50 @@
+<svg
+  width="120"
+  height="120"
+  viewBox="0 0 120 120"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Outer Hexagon -->
+  <path
+    d="M60 6 L106 32 L106 84 L60 110 L14 84 L14 32 Z"
+    fill="#1565C0"
+  />
+
+  <!-- Inner Hexagon -->
+  <path
+    d="M60 18 L94 38 L94 78 L60 98 L26 78 L26 38 Z"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="4"
+  />
+
+  <!-- K -->
+  <path
+    d="M34 42 V78 M34 60 L55 42 M43 58 L57 78"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="7"
+    stroke-linecap="square"
+    stroke-linejoin="miter"
+  />
+
+  <!-- N -->
+  <path
+    d="M59 78 V42 L82 78 V42"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="7"
+    stroke-linecap="square"
+    stroke-linejoin="miter"
+  />
+
+  <!-- R -->
+  <path
+    d="M82 78 V42 H94 Q101 42 101 51 Q101 60 94 60 H82 M91 60 L101 78"
+    fill="none"
+    stroke="#B0BEC5"
+    stroke-width="6"
+    stroke-linecap="square"
+    stroke-linejoin="round"
+  />
+</svg>

@@ -12,6 +12,7 @@ const vehicleRoutes = require("./routes/vehicleRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const fuelRoutes = require("./routes/fuelRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const chargingRoutes = require("./routes/chargingRoutes");
 
 dotenv.config();
 
@@ -24,23 +25,40 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// API Routes
+// ==========================================
+// API ROUTES
+// ==========================================
+
 app.use("/api/auth", authRoutes);
+
 app.use("/api/user", userRoutes);
+
 app.use("/api/vehicles", vehicleRoutes);
+
 app.use("/api/services", serviceRoutes);
+
 app.use("/api/fuel", fuelRoutes);
+
 app.use("/api/dashboard", dashboardRoutes);
 
-// Test Route
+app.use("/api/charging", chargingRoutes);
+
+// ==========================================
+// TEST ROUTE
+// ==========================================
+
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "🚗 Garage Manager API Running Successfully",
+    message:
+      "🚗 Garage Manager API Running Successfully",
   });
 });
 
-// Handle Unknown Routes
+// ==========================================
+// HANDLE UNKNOWN ROUTES
+// ==========================================
+
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -48,9 +66,14 @@ app.use((req, res) => {
   });
 });
 
-// Start Server
+// ==========================================
+// START SERVER
+// ==========================================
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(
+    `🚀 Server running on http://localhost:${PORT}`
+  );
 });

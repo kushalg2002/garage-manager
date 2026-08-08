@@ -17,14 +17,16 @@ import {
 import {
   ArrowBack,
   DirectionsCar,
+  TwoWheeler,
   LocalGasStation,
+  ElectricCar,
   Build,
   Speed,
   CalendarToday,
   CurrencyRupee,
   Add,
   Edit,
-  Delete,
+  Bolt,
 } from "@mui/icons-material";
 
 import Navbar from "../components/Navbar";
@@ -37,7 +39,14 @@ function VehicleDetails() {
   const [vehicle, setVehicle] = useState(null);
   const [services, setServices] = useState([]);
   const [fuelHistory, setFuelHistory] = useState([]);
+  const [chargingHistory, setChargingHistory] =
+    useState([]);
+
   const [loading, setLoading] = useState(true);
+
+  // ==========================================
+  // FETCH DATA
+  // ==========================================
 
   useEffect(() => {
     fetchVehicle();
@@ -51,26 +60,65 @@ function VehicleDetails() {
         Authorization: `Bearer ${token}`,
       };
 
-      const vehicleResponse = await api.get(
-        `/vehicles/${id}`,
-        { headers }
+      // Vehicle
+      const vehicleResponse =
+        await api.get(`/vehicles/${id}`, {
+          headers,
+        });
+
+      // Services
+      const serviceResponse =
+        await api.get(
+          `/services/vehicle/${id}`,
+          { headers }
+        );
+
+      // Fuel
+      const fuelResponse =
+        await api.get(
+          `/fuel/vehicle/${id}`,
+          { headers }
+        );
+
+      setVehicle(
+        vehicleResponse.data.vehicle
       );
 
-      const serviceResponse = await api.get(
-        `/services/vehicle/${id}`,
-        { headers }
+      setServices(
+        serviceResponse.data.services || []
       );
 
-      const fuelResponse = await api.get(
-        `/fuel/vehicle/${id}`,
-        { headers }
-      );
-
-      setVehicle(vehicleResponse.data.vehicle);
-      setServices(serviceResponse.data.services || []);
       setFuelHistory(
         fuelResponse.data.fuelHistory || []
       );
+
+      // ========================================
+      // CHARGING
+      // ========================================
+
+      try {
+        const chargingResponse =
+          await api.get(
+            `/charging/vehicle/${id}`,
+            { headers }
+          );
+
+        setChargingHistory(
+          chargingResponse.data.chargingHistory ||
+            chargingResponse.data.charging ||
+            chargingResponse.data.data ||
+            []
+        );
+      } catch (chargingError) {
+        // Charging route may not exist for
+        // non-EV vehicles.
+        console.log(
+          "Charging history not available:",
+          chargingError
+        );
+
+        setChargingHistory([]);
+      }
     } catch (error) {
       console.error(error);
 
@@ -82,6 +130,25 @@ function VehicleDetails() {
       setLoading(false);
     }
   };
+
+  // ==========================================
+  // VEHICLE TYPE
+  // ==========================================
+
+  const isEV =
+    String(vehicle?.fuelType || "")
+      .toLowerCase() === "electric" ||
+    String(vehicle?.fuelType || "")
+      .toLowerCase() === "ev";
+
+  const isTwoWheeler =
+    String(vehicle?.vehicleType || "")
+      .toLowerCase()
+      .includes("2");
+
+  // ==========================================
+  // TOTAL COSTS
+  // ==========================================
 
   const totalServiceCost = services.reduce(
     (sum, service) =>
@@ -95,8 +162,22 @@ function VehicleDetails() {
     0
   );
 
+  const totalChargingCost =
+    chargingHistory.reduce(
+      (sum, charging) =>
+        sum +
+        Number(charging.amount || 0),
+      0
+    );
+
   const totalExpense =
-    totalServiceCost + totalFuelCost;
+    totalServiceCost +
+    totalFuelCost +
+    totalChargingCost;
+
+  // ==========================================
+  // FORMATTERS
+  // ==========================================
 
   const formatCurrency = (amount) => {
     return Number(amount || 0).toLocaleString(
@@ -113,37 +194,45 @@ function VehicleDetails() {
   const formatDate = (date) => {
     if (!date) return "—";
 
-    return new Date(date).toLocaleDateString(
-      "en-IN",
-      {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }
-    );
+    return new Date(
+      date
+    ).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
 
+  // ==========================================
+  // FUEL COLOR
+  // ==========================================
+
   const getFuelColor = () => {
-    switch (vehicle?.fuelType) {
-      case "Petrol":
+    switch (
+      String(vehicle?.fuelType || "")
+        .toLowerCase()
+    ) {
+      case "petrol":
         return "#1976d2";
 
-      case "Diesel":
+      case "diesel":
         return "#455a64";
 
-      case "CNG":
+      case "cng":
         return "#2e7d32";
 
-      case "Electric":
+      case "electric":
+      case "ev":
         return "#7b1fa2";
-
-      case "Hybrid":
-        return "#ef6c00";
 
       default:
         return "#616161";
     }
   };
+
+  // ==========================================
+  // LOADING
+  // ==========================================
 
   if (loading) {
     return (
@@ -165,7 +254,8 @@ function VehicleDetails() {
               p: 5,
               textAlign: "center",
               borderRadius: 3,
-              border: "1px solid #e2e8f0",
+              border:
+                "1px solid #e2e8f0",
             }}
           >
             <Typography
@@ -181,6 +271,10 @@ function VehicleDetails() {
       </Box>
     );
   }
+
+  // ==========================================
+  // VEHICLE NOT FOUND
+  // ==========================================
 
   if (!vehicle) {
     return (
@@ -227,6 +321,10 @@ function VehicleDetails() {
     );
   }
 
+  // ==========================================
+  // MAIN
+  // ==========================================
+
   return (
     <Box
       sx={{
@@ -245,10 +343,15 @@ function VehicleDetails() {
           },
         }}
       >
-        {/* Back Button */}
+        {/* ======================================
+            BACK
+        ====================================== */}
+
         <Button
           startIcon={<ArrowBack />}
-          onClick={() => navigate("/dashboard")}
+          onClick={() =>
+            navigate("/dashboard")
+          }
           sx={{
             mb: 2,
             color: "#475569",
@@ -259,12 +362,16 @@ function VehicleDetails() {
           Back to Vehicles
         </Button>
 
-        {/* Vehicle Header */}
+        {/* ======================================
+            VEHICLE HEADER
+        ====================================== */}
+
         <Card
           elevation={0}
           sx={{
             borderRadius: 3,
-            border: "1px solid #e2e8f0",
+            border:
+              "1px solid #e2e8f0",
             overflow: "hidden",
             mb: 3,
           }}
@@ -283,7 +390,8 @@ function VehicleDetails() {
             <Box
               sx={{
                 display: "flex",
-                justifyContent: "space-between",
+                justifyContent:
+                  "space-between",
                 alignItems: {
                   xs: "flex-start",
                   sm: "center",
@@ -295,6 +403,8 @@ function VehicleDetails() {
                 gap: 2,
               }}
             >
+              {/* VEHICLE NAME */}
+
               <Box
                 sx={{
                   display: "flex",
@@ -311,12 +421,23 @@ function VehicleDetails() {
                       "rgba(255,255,255,0.15)",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
+                    justifyContent:
+                      "center",
                   }}
                 >
-                  <DirectionsCar
-                    sx={{ fontSize: 38 }}
-                  />
+                  {isTwoWheeler ? (
+                    <TwoWheeler
+                      sx={{
+                        fontSize: 38,
+                      }}
+                    />
+                  ) : (
+                    <DirectionsCar
+                      sx={{
+                        fontSize: 38,
+                      }}
+                    />
+                  )}
                 </Box>
 
                 <Box>
@@ -341,14 +462,28 @@ function VehicleDetails() {
                       fontSize: "15px",
                     }}
                   >
-                    {vehicle.registrationNumber}
+                    {
+                      vehicle.registrationNumber
+                    }
                   </Typography>
                 </Box>
               </Box>
 
+              {/* FUEL */}
+
               <Chip
-                icon={<LocalGasStation />}
-                label={vehicle.fuelType}
+                icon={
+                  isEV ? (
+                    <ElectricCar />
+                  ) : (
+                    <LocalGasStation />
+                  )
+                }
+                label={
+                  isEV
+                    ? "EV"
+                    : vehicle.fuelType
+                }
                 sx={{
                   backgroundColor:
                     "rgba(255,255,255,0.18)",
@@ -363,7 +498,10 @@ function VehicleDetails() {
             </Box>
           </Box>
 
-          {/* Vehicle Information */}
+          {/* ====================================
+              VEHICLE INFORMATION
+          ==================================== */}
+
           <CardContent
             sx={{
               p: {
@@ -403,15 +541,32 @@ function VehicleDetails() {
               />
 
               <InfoBox
-                icon={<LocalGasStation />}
-                title="FUEL ENTRIES"
-                value={fuelHistory.length}
+                icon={
+                  isEV ? (
+                    <Bolt />
+                  ) : (
+                    <LocalGasStation />
+                  )
+                }
+                title={
+                  isEV
+                    ? "CHARGING"
+                    : "FUEL ENTRIES"
+                }
+                value={
+                  isEV
+                    ? chargingHistory.length
+                    : fuelHistory.length
+                }
               />
             </Box>
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
+        {/* ======================================
+            QUICK ACTIONS
+        ====================================== */}
+
         <Box sx={{ mb: 3 }}>
           <Typography
             sx={{
@@ -434,6 +589,8 @@ function VehicleDetails() {
               gap: 1.5,
             }}
           >
+            {/* SERVICE */}
+
             <Button
               variant="contained"
               startIcon={<Add />}
@@ -447,34 +604,77 @@ function VehicleDetails() {
                 borderRadius: 2,
                 textTransform: "none",
                 fontWeight: 600,
-                backgroundColor: "#1565c0",
+                backgroundColor:
+                  "#1565c0",
+
+                "&:hover": {
+                  backgroundColor:
+                    "#0d47a1",
+                },
               }}
             >
               Add Service
             </Button>
 
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() =>
-                navigate(
-                  `/add-fuel/${vehicle._id}`
-                )
-              }
-              sx={{
-                py: 1.3,
-                borderRadius: 2,
-                textTransform: "none",
-                fontWeight: 600,
-                backgroundColor: "#ef6c00",
+            {/* FUEL OR CHARGING */}
 
-                "&:hover": {
-                  backgroundColor: "#e65100",
-                },
-              }}
-            >
-              Add Fuel
-            </Button>
+            {isEV ? (
+              <Button
+                variant="contained"
+                startIcon={<Bolt />}
+                onClick={() =>
+                  navigate(
+                    `/add-charging/${vehicle._id}`
+                  )
+                }
+                sx={{
+                  py: 1.3,
+                  borderRadius: 2,
+                  textTransform:
+                    "none",
+                  fontWeight: 600,
+                  backgroundColor:
+                    "#7b1fa2",
+
+                  "&:hover": {
+                    backgroundColor:
+                      "#6a1b9a",
+                  },
+                }}
+              >
+                Add Charging
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                startIcon={
+                  <LocalGasStation />
+                }
+                onClick={() =>
+                  navigate(
+                    `/add-fuel/${vehicle._id}`
+                  )
+                }
+                sx={{
+                  py: 1.3,
+                  borderRadius: 2,
+                  textTransform:
+                    "none",
+                  fontWeight: 600,
+                  backgroundColor:
+                    "#ef6c00",
+
+                  "&:hover": {
+                    backgroundColor:
+                      "#e65100",
+                  },
+                }}
+              >
+                Add Fuel
+              </Button>
+            )}
+
+            {/* EDIT */}
 
             <Button
               variant="outlined"
@@ -494,6 +694,8 @@ function VehicleDetails() {
               Edit Vehicle
             </Button>
 
+            {/* ALL VEHICLES */}
+
             <Button
               variant="outlined"
               startIcon={<ArrowBack />}
@@ -512,7 +714,10 @@ function VehicleDetails() {
           </Box>
         </Box>
 
-        {/* Expense Overview */}
+        {/* ======================================
+            EXPENSE OVERVIEW
+        ====================================== */}
+
         <Typography
           sx={{
             fontSize: "21px",
@@ -545,15 +750,29 @@ function VehicleDetails() {
             background="#f5f3ff"
           />
 
-          <ExpenseCard
-            title="Fuel Cost"
-            value={`₹${formatCurrency(
-              totalFuelCost
-            )}`}
-            icon={<LocalGasStation />}
-            iconColor="#ea580c"
-            background="#fff7ed"
-          />
+          {isEV ? (
+            <ExpenseCard
+              title="Charging Cost"
+              value={`₹${formatCurrency(
+                totalChargingCost
+              )}`}
+              icon={<Bolt />}
+              iconColor="#7b1fa2"
+              background="#faf5ff"
+            />
+          ) : (
+            <ExpenseCard
+              title="Fuel Cost"
+              value={`₹${formatCurrency(
+                totalFuelCost
+              )}`}
+              icon={
+                <LocalGasStation />
+              }
+              iconColor="#ea580c"
+              background="#fff7ed"
+            />
+          )}
 
           <ExpenseCard
             title="Total Expense"
@@ -566,12 +785,16 @@ function VehicleDetails() {
           />
         </Box>
 
-        {/* Services */}
+        {/* ======================================
+            SERVICE HISTORY
+        ====================================== */}
+
         <Card
           elevation={0}
           sx={{
             borderRadius: 3,
-            border: "1px solid #e2e8f0",
+            border:
+              "1px solid #e2e8f0",
             mb: 3,
           }}
         >
@@ -586,7 +809,8 @@ function VehicleDetails() {
             <Box
               sx={{
                 display: "flex",
-                justifyContent: "space-between",
+                justifyContent:
+                  "space-between",
                 alignItems: "center",
                 mb: 2,
               }}
@@ -628,7 +852,8 @@ function VehicleDetails() {
                 }
                 sx={{
                   borderRadius: 2,
-                  textTransform: "none",
+                  textTransform:
+                    "none",
                 }}
               >
                 Add
@@ -645,325 +870,628 @@ function VehicleDetails() {
               />
             ) : (
               <Stack spacing={1.5}>
-                {services.map((service) => (
-                  <Paper
-                    key={service._id}
-                    elevation={0}
-                    sx={{
-                      p: {
-                        xs: 1.5,
-                        sm: 2,
-                      },
-                      borderRadius: 2,
-                      border:
-                        "1px solid #e2e8f0",
-                      backgroundColor:
-                        "#f8fafc",
-                    }}
-                  >
-                    <Box
+                {services.map(
+                  (service) => (
+                    <Paper
+                      key={service._id}
+                      elevation={0}
                       sx={{
-                        display: "flex",
-                        justifyContent:
-                          "space-between",
-                        alignItems: "flex-start",
-                        gap: 2,
+                        p: {
+                          xs: 1.5,
+                          sm: 2,
+                        },
+                        borderRadius: 2,
+                        border:
+                          "1px solid #e2e8f0",
+                        backgroundColor:
+                          "#f8fafc",
                       }}
                     >
-                      <Box>
-                        <Typography
-                          sx={{
-                            fontSize: "17px",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                          }}
-                        >
-                          {service.serviceName}
-                        </Typography>
-
-                        <Typography
-                          sx={{
-                            color: "#64748b",
-                            fontSize: "14px",
-                            mt: 0.5,
-                          }}
-                        >
-                          {service.garageName ||
-                            "Garage not specified"}
-                        </Typography>
-                      </Box>
-
-                      <Typography
+                      <Box
                         sx={{
-                          fontWeight: 700,
-                          color: "#6d28d9",
-                          whiteSpace: "nowrap",
+                          display: "flex",
+                          justifyContent:
+                            "space-between",
+                          alignItems:
+                            "flex-start",
+                          gap: 2,
                         }}
                       >
-                        ₹
-                        {formatCurrency(
-                          service.cost
-                        )}
-                      </Typography>
-                    </Box>
-
-                    <Box
-                      sx={{
-                        display: "flex",
-                        gap: 1,
-                        flexWrap: "wrap",
-                        mt: 1.5,
-                      }}
-                    >
-                      <Chip
-                        size="small"
-                        icon={<CalendarToday />}
-                        label={formatDate(
-                          service.serviceDate
-                        )}
-                      />
-
-                      <Chip
-                        size="small"
-                        icon={<Speed />}
-                        label={`${formatNumber(
-                          service.odometer
-                        )} km`}
-                      />
-                    </Box>
-
-                    {service.notes && (
-                      <Typography
-                        sx={{
-                          mt: 1.5,
-                          fontSize: "14px",
-                          color: "#64748b",
-                        }}
-                      >
-                        {service.notes}
-                      </Typography>
-                    )}
-                  </Paper>
-                ))}
-              </Stack>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Fuel History */}
-        <Card
-          elevation={0}
-          sx={{
-            borderRadius: 3,
-            border: "1px solid #e2e8f0",
-            mb: 3,
-          }}
-        >
-          <CardContent
-            sx={{
-              p: {
-                xs: 2,
-                sm: 3,
-              },
-            }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 2,
-              }}
-            >
-              <Box>
-                <Typography
-                  sx={{
-                    fontSize: "22px",
-                    fontWeight: 700,
-                    color: "#14213d",
-                  }}
-                >
-                  ⛽ Fuel History
-                </Typography>
-
-                <Typography
-                  sx={{
-                    color: "#64748b",
-                    fontSize: "14px",
-                    mt: 0.3,
-                  }}
-                >
-                  {fuelHistory.length} fuel
-                  {fuelHistory.length !== 1
-                    ? " entries"
-                    : " entry"}{" "}
-                  recorded
-                </Typography>
-              </Box>
-
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<Add />}
-                onClick={() =>
-                  navigate(
-                    `/add-fuel/${vehicle._id}`
-                  )
-                }
-                sx={{
-                  borderRadius: 2,
-                  textTransform: "none",
-                  backgroundColor: "#ef6c00",
-
-                  "&:hover": {
-                    backgroundColor: "#e65100",
-                  },
-                }}
-              >
-                Add
-              </Button>
-            </Box>
-
-            <Divider sx={{ mb: 2 }} />
-
-            {fuelHistory.length === 0 ? (
-              <EmptyState
-                icon={<LocalGasStation />}
-                title="No fuel records"
-                text="Add your first fuel entry for this vehicle."
-              />
-            ) : (
-              <Stack spacing={1.5}>
-                {fuelHistory.map((fuel) => (
-                  <Paper
-                    key={fuel._id}
-                    elevation={0}
-                    sx={{
-                      p: {
-                        xs: 1.5,
-                        sm: 2,
-                      },
-                      borderRadius: 2,
-                      border:
-                        "1px solid #e2e8f0",
-                      backgroundColor:
-                        "#fffaf5",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent:
-                          "space-between",
-                        alignItems: "flex-start",
-                        gap: 2,
-                      }}
-                    >
-                      <Box>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems:
-                              "center",
-                            gap: 1,
-                          }}
-                        >
-                          <LocalGasStation
+                        <Box>
+                          <Typography
                             sx={{
-                              color: "#ef6c00",
+                              fontSize:
+                                "17px",
+                              fontWeight:
+                                700,
+                              color:
+                                "#1e293b",
                             }}
-                          />
+                          >
+                            {
+                              service.serviceName
+                            }
+                          </Typography>
 
                           <Typography
                             sx={{
-                              fontSize: "17px",
-                              fontWeight: 700,
-                              color: "#1e293b",
+                              color:
+                                "#64748b",
+                              fontSize:
+                                "14px",
+                              mt: 0.5,
                             }}
                           >
-                            {fuel.fuelType}
+                            {service.garageName ||
+                              "Garage not specified"}
                           </Typography>
                         </Box>
 
                         <Typography
                           sx={{
-                            color: "#64748b",
-                            fontSize: "14px",
-                            mt: 0.5,
+                            fontWeight: 700,
+                            color:
+                              "#6d28d9",
+                            whiteSpace:
+                              "nowrap",
                           }}
                         >
-                          {fuel.station ||
-                            "Fuel station not specified"}
+                          ₹
+                          {formatCurrency(
+                            service.cost
+                          )}
                         </Typography>
                       </Box>
 
-                      <Typography
+                      <Box
                         sx={{
-                          fontWeight: 700,
-                          color: "#ea580c",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        ₹
-                        {formatCurrency(
-                          fuel.amount
-                        )}
-                      </Typography>
-                    </Box>
-
-                    <Box
-                      sx={{
-                        display: "flex",
-                        gap: 1,
-                        flexWrap: "wrap",
-                        mt: 1.5,
-                      }}
-                    >
-                      <Chip
-                        size="small"
-                        label={`${fuel.litres} L`}
-                      />
-
-                      <Chip
-                        size="small"
-                        icon={<Speed />}
-                        label={`${formatNumber(
-                          fuel.odometer
-                        )} km`}
-                      />
-
-                      <Chip
-                        size="small"
-                        icon={<CalendarToday />}
-                        label={formatDate(
-                          fuel.fuelDate
-                        )}
-                      />
-                    </Box>
-
-                    {fuel.notes && (
-                      <Typography
-                        sx={{
+                          display:
+                            "flex",
+                          gap: 1,
+                          flexWrap:
+                            "wrap",
                           mt: 1.5,
-                          fontSize: "14px",
-                          color: "#64748b",
                         }}
                       >
-                        {fuel.notes}
-                      </Typography>
-                    )}
-                  </Paper>
-                ))}
+                        <Chip
+                          size="small"
+                          icon={
+                            <CalendarToday />
+                          }
+                          label={formatDate(
+                            service.serviceDate
+                          )}
+                        />
+
+                        <Chip
+                          size="small"
+                          icon={<Speed />}
+                          label={`${formatNumber(
+                            service.odometer
+                          )} km`}
+                        />
+                      </Box>
+
+                      {service.notes && (
+                        <Typography
+                          sx={{
+                            mt: 1.5,
+                            fontSize:
+                              "14px",
+                            color:
+                              "#64748b",
+                          }}
+                        >
+                          {service.notes}
+                        </Typography>
+                      )}
+                    </Paper>
+                  )
+                )}
               </Stack>
             )}
           </CardContent>
         </Card>
 
-        {/* Bottom Back Button */}
+        {/* ======================================
+            EV CHARGING HISTORY
+        ====================================== */}
+
+        {isEV && (
+          <Card
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              border:
+                "1px solid #e2e8f0",
+              mb: 3,
+            }}
+          >
+            <CardContent
+              sx={{
+                p: {
+                  xs: 2,
+                  sm: 3,
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent:
+                    "space-between",
+                  alignItems: "center",
+                  mb: 2,
+                }}
+              >
+                <Box>
+                  <Typography
+                    sx={{
+                      fontSize: "22px",
+                      fontWeight: 700,
+                      color: "#14213d",
+                    }}
+                  >
+                    ⚡ Charging History
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      color: "#64748b",
+                      fontSize: "14px",
+                      mt: 0.3,
+                    }}
+                  >
+                    {chargingHistory.length} charging
+                    {chargingHistory.length !==
+                    1
+                      ? " entries"
+                      : " entry"}{" "}
+                    recorded
+                  </Typography>
+                </Box>
+
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<Add />}
+                  onClick={() =>
+                    navigate(
+                      `/add-charging/${vehicle._id}`
+                    )
+                  }
+                  sx={{
+                    borderRadius: 2,
+                    textTransform:
+                      "none",
+                    backgroundColor:
+                      "#7b1fa2",
+
+                    "&:hover": {
+                      backgroundColor:
+                        "#6a1b9a",
+                    },
+                  }}
+                >
+                  Add
+                </Button>
+              </Box>
+
+              <Divider sx={{ mb: 2 }} />
+
+              {chargingHistory.length ===
+              0 ? (
+                <EmptyState
+                  icon={<Bolt />}
+                  title="No charging records"
+                  text="Add your first charging entry for this vehicle."
+                />
+              ) : (
+                <Stack spacing={1.5}>
+                  {chargingHistory.map(
+                    (charging) => (
+                      <Paper
+                        key={
+                          charging._id
+                        }
+                        elevation={0}
+                        sx={{
+                          p: {
+                            xs: 1.5,
+                            sm: 2,
+                          },
+                          borderRadius: 2,
+                          border:
+                            "1px solid #e9d5ff",
+                          backgroundColor:
+                            "#faf5ff",
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display:
+                              "flex",
+                            justifyContent:
+                              "space-between",
+                            alignItems:
+                              "flex-start",
+                            gap: 2,
+                          }}
+                        >
+                          <Box>
+                            <Box
+                              sx={{
+                                display:
+                                  "flex",
+                                alignItems:
+                                  "center",
+                                gap: 1,
+                              }}
+                            >
+                              <Bolt
+                                sx={{
+                                  color:
+                                    "#7b1fa2",
+                                }}
+                              />
+
+                              <Typography
+                                sx={{
+                                  fontSize:
+                                    "17px",
+                                  fontWeight:
+                                    700,
+                                  color:
+                                    "#1e293b",
+                                }}
+                              >
+                                {charging.units}{" "}
+                                kWh
+                              </Typography>
+                            </Box>
+
+                            <Typography
+                              sx={{
+                                color:
+                                  "#64748b",
+                                fontSize:
+                                  "14px",
+                                mt: 0.5,
+                              }}
+                            >
+                              {charging.station ||
+                                "Charging station not specified"}
+                            </Typography>
+                          </Box>
+
+                          <Typography
+                            sx={{
+                              fontWeight:
+                                700,
+                              color:
+                                "#7b1fa2",
+                              whiteSpace:
+                                "nowrap",
+                            }}
+                          >
+                            ₹
+                            {formatCurrency(
+                              charging.amount
+                            )}
+                          </Typography>
+                        </Box>
+
+                        <Box
+                          sx={{
+                            display:
+                              "flex",
+                            gap: 1,
+                            flexWrap:
+                              "wrap",
+                            mt: 1.5,
+                          }}
+                        >
+                          <Chip
+                            size="small"
+                            icon={
+                              <Speed />
+                            }
+                            label={`${formatNumber(
+                              charging.odometer
+                            )} km`}
+                          />
+
+                          <Chip
+                            size="small"
+                            icon={
+                              <CalendarToday />
+                            }
+                            label={formatDate(
+                              charging.chargingDate
+                            )}
+                          />
+                        </Box>
+
+                        {charging.notes && (
+                          <Typography
+                            sx={{
+                              mt: 1.5,
+                              fontSize:
+                                "14px",
+                              color:
+                                "#64748b",
+                            }}
+                          >
+                            {
+                              charging.notes
+                            }
+                          </Typography>
+                        )}
+                      </Paper>
+                    )
+                  )}
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ======================================
+            FUEL HISTORY
+        ====================================== */}
+
+        {!isEV && (
+          <Card
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              border:
+                "1px solid #e2e8f0",
+              mb: 3,
+            }}
+          >
+            <CardContent
+              sx={{
+                p: {
+                  xs: 2,
+                  sm: 3,
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent:
+                    "space-between",
+                  alignItems: "center",
+                  mb: 2,
+                }}
+              >
+                <Box>
+                  <Typography
+                    sx={{
+                      fontSize: "22px",
+                      fontWeight: 700,
+                      color: "#14213d",
+                    }}
+                  >
+                    ⛽ Fuel History
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      color: "#64748b",
+                      fontSize: "14px",
+                      mt: 0.3,
+                    }}
+                  >
+                    {fuelHistory.length} fuel
+                    {fuelHistory.length !==
+                    1
+                      ? " entries"
+                      : " entry"}{" "}
+                    recorded
+                  </Typography>
+                </Box>
+
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<Add />}
+                  onClick={() =>
+                    navigate(
+                      `/add-fuel/${vehicle._id}`
+                    )
+                  }
+                  sx={{
+                    borderRadius: 2,
+                    textTransform:
+                      "none",
+                    backgroundColor:
+                      "#ef6c00",
+
+                    "&:hover": {
+                      backgroundColor:
+                        "#e65100",
+                    },
+                  }}
+                >
+                  Add
+                </Button>
+              </Box>
+
+              <Divider sx={{ mb: 2 }} />
+
+              {fuelHistory.length ===
+              0 ? (
+                <EmptyState
+                  icon={
+                    <LocalGasStation />
+                  }
+                  title="No fuel records"
+                  text="Add your first fuel entry for this vehicle."
+                />
+              ) : (
+                <Stack spacing={1.5}>
+                  {fuelHistory.map(
+                    (fuel) => (
+                      <Paper
+                        key={fuel._id}
+                        elevation={0}
+                        sx={{
+                          p: {
+                            xs: 1.5,
+                            sm: 2,
+                          },
+                          borderRadius: 2,
+                          border:
+                            "1px solid #e2e8f0",
+                          backgroundColor:
+                            "#fffaf5",
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display:
+                              "flex",
+                            justifyContent:
+                              "space-between",
+                            alignItems:
+                              "flex-start",
+                            gap: 2,
+                          }}
+                        >
+                          <Box>
+                            <Box
+                              sx={{
+                                display:
+                                  "flex",
+                                alignItems:
+                                  "center",
+                                gap: 1,
+                              }}
+                            >
+                              <LocalGasStation
+                                sx={{
+                                  color:
+                                    "#ef6c00",
+                                }}
+                              />
+
+                              <Typography
+                                sx={{
+                                  fontSize:
+                                    "17px",
+                                  fontWeight:
+                                    700,
+                                  color:
+                                    "#1e293b",
+                                }}
+                              >
+                                {
+                                  fuel.fuelType
+                                }
+                              </Typography>
+                            </Box>
+
+                            <Typography
+                              sx={{
+                                color:
+                                  "#64748b",
+                                fontSize:
+                                  "14px",
+                                mt: 0.5,
+                              }}
+                            >
+                              {fuel.station ||
+                                "Fuel station not specified"}
+                            </Typography>
+                          </Box>
+
+                          <Typography
+                            sx={{
+                              fontWeight:
+                                700,
+                              color:
+                                "#ea580c",
+                              whiteSpace:
+                                "nowrap",
+                            }}
+                          >
+                            ₹
+                            {formatCurrency(
+                              fuel.amount
+                            )}
+                          </Typography>
+                        </Box>
+
+                        <Box
+                          sx={{
+                            display:
+                              "flex",
+                            gap: 1,
+                            flexWrap:
+                              "wrap",
+                            mt: 1.5,
+                          }}
+                        >
+                          <Chip
+                            size="small"
+                            label={`${fuel.litres} L`}
+                          />
+
+                          <Chip
+                            size="small"
+                            icon={
+                              <Speed />
+                            }
+                            label={`${formatNumber(
+                              fuel.odometer
+                            )} km`}
+                          />
+
+                          <Chip
+                            size="small"
+                            icon={
+                              <CalendarToday />
+                            }
+                            label={formatDate(
+                              fuel.fuelDate
+                            )}
+                          />
+                        </Box>
+
+                        {fuel.notes && (
+                          <Typography
+                            sx={{
+                              mt: 1.5,
+                              fontSize:
+                                "14px",
+                              color:
+                                "#64748b",
+                            }}
+                          >
+                            {fuel.notes}
+                          </Typography>
+                        )}
+                      </Paper>
+                    )
+                  )}
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ======================================
+            BOTTOM
+        ====================================== */}
+
         <Box
           sx={{
             display: "flex",
-            justifyContent: "center",
+            justifyContent:
+              "center",
             pb: 3,
           }}
         >
@@ -988,11 +1516,15 @@ function VehicleDetails() {
   );
 }
 
-/* ---------------------------------
-   Small reusable components
----------------------------------- */
+// ==========================================
+// INFO BOX
+// ==========================================
 
-function InfoBox({ icon, title, value }) {
+function InfoBox({
+  icon,
+  title,
+  value,
+}) {
   return (
     <Box
       sx={{
@@ -1042,6 +1574,10 @@ function InfoBox({ icon, title, value }) {
   );
 }
 
+// ==========================================
+// EXPENSE CARD
+// ==========================================
+
 function ExpenseCard({
   title,
   value,
@@ -1055,7 +1591,8 @@ function ExpenseCard({
       sx={{
         p: 2,
         borderRadius: 2.5,
-        border: "1px solid #e2e8f0",
+        border:
+          "1px solid #e2e8f0",
         backgroundColor: "#ffffff",
       }}
     >
@@ -1073,8 +1610,10 @@ function ExpenseCard({
             borderRadius: 2,
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: background,
+            justifyContent:
+              "center",
+            backgroundColor:
+              background,
             color: iconColor,
           }}
         >
@@ -1110,7 +1649,15 @@ function ExpenseCard({
   );
 }
 
-function EmptyState({ icon, title, text }) {
+// ==========================================
+// EMPTY STATE
+// ==========================================
+
+function EmptyState({
+  icon,
+  title,
+  text,
+}) {
   return (
     <Box
       sx={{

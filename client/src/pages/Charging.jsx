@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   Box,
   Button,
   Card,
   CardContent,
+  Chip,
   Container,
   Divider,
   IconButton,
@@ -14,62 +15,84 @@ import {
   Stack,
   TextField,
   Typography,
-  Chip,
 } from "@mui/material";
 
 import {
   Add,
   ArrowBack,
-  Build,
   CalendarToday,
   DirectionsCar,
+  ElectricCar,
   Search,
   Speed,
-  CurrencyRupee,
+  Bolt,
 } from "@mui/icons-material";
 
 import Navbar from "../components/Navbar";
 import api from "../services/api";
 
-function Services() {
+function Charging() {
   const navigate = useNavigate();
 
-  const [services, setServices] = useState([]);
+  const [chargingHistory, setChargingHistory] =
+    useState([]);
+
   const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    fetchServices();
-  }, []);
+  const [searchParams] = useSearchParams();
 
-  const fetchServices = async () => {
+  const vehicleId = searchParams.get("vehicle");
+
+  useEffect(() => {
+    fetchCharging();
+  }, [vehicleId]);
+
+  // ==========================================
+  // FETCH CHARGING
+  // ==========================================
+
+  const fetchCharging = async () => {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token");
 
-      const response = await api.get("/services", {
+      const url = vehicleId
+        ? `/charging?vehicle=${vehicleId}`
+        : "/charging";
+
+      const response = await api.get(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      console.log("Services API:", response.data);
+      console.log(
+        "Charging API Response:",
+        response.data
+      );
 
-      setServices(response.data.services || []);
+      setChargingHistory(
+        response.data.chargingHistory || []
+      );
     } catch (error) {
       console.error(error);
 
       alert(
         error.response?.data?.message ||
-          "Failed to load services"
+          "Failed to load charging history"
       );
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= HELPERS ================= */
+  // ==========================================
+  // FORMATTERS
+  // ==========================================
 
   const formatCurrency = (amount) => {
     return Number(amount || 0).toLocaleString(
@@ -96,52 +119,54 @@ function Services() {
     );
   };
 
-  /* ================= SEARCH ================= */
+  // ==========================================
+  // SEARCH
+  // ==========================================
 
-  const filteredServices = services.filter(
-    (service) => {
+  const filteredCharging =
+    chargingHistory.filter((charging) => {
       const keyword = search.toLowerCase();
 
-      const serviceName =
-        service.serviceName?.toLowerCase() || "";
-
-      const garageName =
-        service.garageName?.toLowerCase() || "";
-
       const vehicleName =
-        `${service.vehicle?.brand || ""} ${
-          service.vehicle?.model || ""
+        `${charging.vehicle?.brand || ""} ${
+          charging.vehicle?.model || ""
         }`.toLowerCase();
 
       const registration =
-        service.vehicle?.registrationNumber?.toLowerCase() ||
+        charging.vehicle?.registrationNumber?.toLowerCase() ||
         "";
 
-      const notes =
-        service.notes?.toLowerCase() || "";
+      const station =
+        charging.station?.toLowerCase() || "";
 
       return (
-        serviceName.includes(keyword) ||
-        garageName.includes(keyword) ||
         vehicleName.includes(keyword) ||
         registration.includes(keyword) ||
-        notes.includes(keyword)
+        station.includes(keyword)
       );
-    }
-  );
+    });
 
-  /* ================= STATISTICS ================= */
+  // ==========================================
+  // STATISTICS
+  // ==========================================
 
-  const totalServiceCost = services.reduce(
-    (sum, service) =>
-      sum + Number(service.cost || 0),
-    0
-  );
+  const totalChargingCost =
+    chargingHistory.reduce(
+      (sum, charging) =>
+        sum + Number(charging.amount || 0),
+      0
+    );
 
-  const averageServiceCost =
-    services.length > 0
-      ? totalServiceCost / services.length
-      : 0;
+  const totalUnits =
+    chargingHistory.reduce(
+      (sum, charging) =>
+        sum + Number(charging.units || 0),
+      0
+    );
+
+  // ==========================================
+  // RETURN
+  // ==========================================
 
   return (
     <Box
@@ -162,19 +187,19 @@ function Services() {
           },
         }}
       >
-        {/* =================================================
+        {/* ==========================================
             HEADER
-        ================================================= */}
+        ========================================== */}
 
         <Box sx={{ mb: 3 }}>
-
           {/* TOP ROW */}
 
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
+              justifyContent:
+                "space-between",
               mb: 2.5,
             }}
           >
@@ -201,71 +226,70 @@ function Services() {
               <ArrowBack />
             </IconButton>
 
-            {/* ADD SERVICE */}
+            {/* ADD CHARGING */}
 
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() =>
-                navigate("/add-service")
-              }
-              sx={{
-                backgroundColor: "#1565c0",
-                borderRadius: 2,
-                px: {
-                  xs: 1.5,
-                  sm: 2.5,
-                },
-                py: 1.2,
-                textTransform: "none",
-                fontWeight: 700,
-                boxShadow:
-                  "0 5px 15px rgba(21,101,192,0.25)",
+<Button
+  variant="contained"
+  startIcon={<Add />}
+  onClick={() => navigate("/add-charging")}
+  sx={{
+    backgroundColor: "#7b1fa2",
+    borderRadius: 2,
+    px: {
+      xs: 1.5,
+      sm: 2.5,
+    },
+    py: 1.2,
+    textTransform: "none",
+    fontWeight: 700,
+    boxShadow:
+      "0 5px 15px rgba(123,31,162,0.25)",
 
-                "&:hover": {
-                  backgroundColor: "#0d47a1",
-                },
-              }}
-            >
-              Add Service
-            </Button>
-          </Box>
+    "&:hover": {
+      backgroundColor: "#6a1b9a",
+    },
+  }}
+>
+  Add Charging
+</Button>
+</Box>
 
           {/* TITLE */}
 
-<Box>
-  <Typography
-    sx={{
-      fontSize: {
-        xs: "27px",
-        sm: "32px",
-      },
-      fontWeight: 800,
-      color: "#14213d",
-      lineHeight: 1.2,
-    }}
-  >
-    🔧 Service History
-  </Typography>
+          <Box>
+            <Typography
+              sx={{
+                fontSize: {
+                  xs: "27px",
+                  sm: "32px",
+                },
+                fontWeight: 800,
+                color: "#14213d",
+                lineHeight: 1.2,
+              }}
+            >
+              ⚡ Charging History
+            </Typography>
 
-  <Typography
-    sx={{
-      color: "#64748b",
-      mt: 0.7,
-      fontSize: {
-        xs: "13px",
-        sm: "15px",
-      },
-    }}
-  >
-    Track all your vehicle service records in one place.
-  </Typography>
-</Box>
-</Box>
+            <Typography
+              sx={{
+                color: "#64748b",
+                mt: 0.7,
+                fontSize: {
+                  xs: "13px",
+                  sm: "15px",
+                },
+              }}
+            >
+              Track your EV charging usage
+              and expenses.
+            </Typography>
+          </Box>
+        </Box>
 
-        {/* =================================================
+        {/* ==========================================
             STATISTICS
-        ================================================= */}
+        ========================================== */}
 
         <Box
           sx={{
@@ -279,37 +303,37 @@ function Services() {
           }}
         >
           <StatCard
-            icon={<Build />}
-            title="Total Services"
-            value={services.length}
+            icon={<Bolt />}
+            title="Charging Entries"
+            value={chargingHistory.length}
+            iconColor="#7b1fa2"
+            background="#f3e5f5"
+          />
+
+          <StatCard
+            icon={<span>₹</span>}
+            title="Total Charging Expense"
+            value={`₹${formatCurrency(
+              totalChargingCost
+            )}`}
             iconColor="#1565c0"
             background="#eaf2ff"
           />
 
           <StatCard
-            icon={<CurrencyRupee />}
-            title="Total Service Expense"
-            value={`₹${formatCurrency(
-              totalServiceCost
-            )}`}
-            iconColor="#7b1fa2"
-            background="#f3e8ff"
-          />
-
-          <StatCard
-            icon={<CurrencyRupee />}
-            title="Average Service Cost"
-            value={`₹${formatCurrency(
-              averageServiceCost
-            )}`}
+            icon={<Bolt />}
+            title="Total Energy"
+            value={`${totalUnits.toFixed(
+              2
+            )} kWh`}
             iconColor="#2e7d32"
             background="#edf7ed"
           />
         </Box>
 
-        {/* =================================================
+        {/* ==========================================
             SEARCH
-        ================================================= */}
+        ========================================== */}
 
         <Paper
           elevation={0}
@@ -320,9 +344,9 @@ function Services() {
             },
             mb: 3,
             borderRadius: 3,
+            backgroundColor: "#ffffff",
             border:
               "1px solid #e2e8f0",
-            backgroundColor: "#ffffff",
           }}
         >
           <Typography
@@ -333,7 +357,7 @@ function Services() {
               mb: 1.2,
             }}
           >
-            Find Service Records
+            Find Charging Records
           </Typography>
 
           <TextField
@@ -342,7 +366,7 @@ function Services() {
             onChange={(e) =>
               setSearch(e.target.value)
             }
-            placeholder="Search by vehicle, registration, service or garage..."
+            placeholder="Search by vehicle, registration or charging station..."
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -370,19 +394,94 @@ function Services() {
                 },
 
                 "&.Mui-focused fieldset": {
-                  borderColor: "#1976d2",
+                  borderColor: "#7b1fa2",
                 },
               },
             }}
           />
         </Paper>
 
-        {/* =================================================
+        {/* ==========================================
+            VEHICLE FILTER
+        ========================================== */}
+
+        {vehicleId && (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              mb: 3,
+              borderRadius: 2.5,
+              border:
+                "1px solid #d8b4e2",
+              backgroundColor: "#faf5fc",
+              display: "flex",
+              alignItems: "center",
+              justifyContent:
+                "space-between",
+              gap: 2,
+              flexWrap: "wrap",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <Chip
+                label="Vehicle Filter Active"
+                size="small"
+                sx={{
+                  backgroundColor:
+                    "#7b1fa2",
+                  color: "#ffffff",
+                  fontWeight: 700,
+                }}
+              />
+
+              <Typography
+                sx={{
+                  fontSize: "13px",
+                  color: "#475569",
+                }}
+              >
+                Showing charging records
+                for one vehicle
+              </Typography>
+            </Box>
+
+            <Button
+              size="small"
+              onClick={() =>
+                navigate("/charging")
+              }
+              sx={{
+                textTransform: "none",
+                fontWeight: 600,
+                color: "#7b1fa2",
+              }}
+            >
+              Show All Vehicles
+            </Button>
+          </Paper>
+        )}
+
+        {/* ==========================================
             RECORD COUNT
-        ================================================= */}
+        ========================================== */}
 
         {!loading && (
-          <Box sx={{ mb: 1.5 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent:
+                "space-between",
+              alignItems: "center",
+              mb: 1.5,
+            }}
+          >
             <Typography
               sx={{
                 color: "#64748b",
@@ -394,10 +493,11 @@ function Services() {
                   color: "#1e293b",
                 }}
               >
-                {filteredServices.length}
+                {filteredCharging.length}
               </strong>{" "}
-              service{" "}
-              {filteredServices.length === 1
+              charging{" "}
+              {filteredCharging.length ===
+              1
                 ? "record"
                 : "records"}{" "}
               found
@@ -405,9 +505,9 @@ function Services() {
           </Box>
         )}
 
-        {/* =================================================
-            SERVICE RECORDS
-        ================================================= */}
+        {/* ==========================================
+            CHARGING RECORDS
+        ========================================== */}
 
         {loading ? (
           <Paper
@@ -426,18 +526,19 @@ function Services() {
                 color: "#64748b",
               }}
             >
-              Loading service history...
+              Loading charging history...
             </Typography>
           </Paper>
-        ) : filteredServices.length === 0 ? (
-          <EmptyServices />
+        ) : filteredCharging.length ===
+          0 ? (
+          <EmptyCharging />
         ) : (
           <Stack spacing={2}>
-            {filteredServices.map(
-              (service) => (
-                <ServiceCard
-                  key={service._id}
-                  service={service}
+            {filteredCharging.map(
+              (charging) => (
+                <ChargingCard
+                  key={charging._id}
+                  charging={charging}
                   formatCurrency={
                     formatCurrency
                   }
@@ -452,9 +553,9 @@ function Services() {
           </Stack>
         )}
 
-        {/* =================================================
-            BOTTOM DASHBOARD
-        ================================================= */}
+        {/* ==========================================
+            BOTTOM DASHBOARD BUTTON
+        ========================================== */}
 
         <Box
           sx={{
@@ -493,18 +594,18 @@ function Services() {
   );
 }
 
-/* =================================================
-   SERVICE CARD
-================================================= */
+// ==========================================
+// CHARGING CARD
+// ==========================================
 
-function ServiceCard({
-  service,
+function ChargingCard({
+  charging,
   formatCurrency,
   formatNumber,
   formatDate,
   navigate,
 }) {
-  const vehicle = service.vehicle;
+  const vehicle = charging.vehicle;
 
   return (
     <Card
@@ -534,7 +635,7 @@ function ServiceCard({
           },
         }}
       >
-        {/* CARD HEADER */}
+        {/* HEADER */}
 
         <Box
           sx={{
@@ -559,8 +660,8 @@ function ServiceCard({
                 height: 52,
                 borderRadius: 2.5,
                 backgroundColor:
-                  "#eaf2ff",
-                color: "#1565c0",
+                  "#f3e5f5",
+                color: "#7b1fa2",
                 display: "flex",
                 alignItems: "center",
                 justifyContent:
@@ -568,14 +669,18 @@ function ServiceCard({
                 flexShrink: 0,
               }}
             >
-              <Build
+              <Bolt
                 sx={{
-                  fontSize: 27,
+                  fontSize: 30,
                 }}
               />
             </Box>
 
-            <Box sx={{ minWidth: 0 }}>
+            <Box
+              sx={{
+                minWidth: 0,
+              }}
+            >
               <Typography
                 sx={{
                   fontSize: {
@@ -591,8 +696,8 @@ function ServiceCard({
                     "nowrap",
                 }}
               >
-                {service.serviceName ||
-                  "Service"}
+                {vehicle?.brand}{" "}
+                {vehicle?.model}
               </Typography>
 
               <Typography
@@ -602,24 +707,12 @@ function ServiceCard({
                   mt: 0.2,
                 }}
               >
-                {vehicle?.brand}{" "}
-                {vehicle?.model}
-              </Typography>
-
-              <Typography
-                sx={{
-                  color: "#94a3b8",
-                  fontSize: "12px",
-                  mt: 0.2,
-                }}
-              >
-                {vehicle?.registrationNumber ||
-                  "-"}
+                {
+                  vehicle?.registrationNumber
+                }
               </Typography>
             </Box>
           </Box>
-
-          {/* COST */}
 
           <Typography
             sx={{
@@ -632,13 +725,56 @@ function ServiceCard({
               whiteSpace: "nowrap",
             }}
           >
-            ₹{formatCurrency(service.cost)}
+            ₹
+            {formatCurrency(
+              charging.amount
+            )}
           </Typography>
         </Box>
 
         <Divider sx={{ my: 2 }} />
 
-        {/* SERVICE DETAILS */}
+        {/* TYPE */}
+
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent:
+              "space-between",
+            alignItems: "center",
+            mb: 2,
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: "12px",
+              color: "#64748b",
+              fontWeight: 600,
+              textTransform:
+                "uppercase",
+            }}
+          >
+            Energy Type
+          </Typography>
+
+          <Chip
+            icon={<Bolt />}
+            label="Electric"
+            size="small"
+            sx={{
+              color: "#ffffff",
+              backgroundColor:
+                "#7b1fa2",
+              fontWeight: 700,
+
+              "& .MuiChip-icon": {
+                color: "#ffffff",
+              },
+            }}
+          />
+        </Box>
+
+        {/* DETAILS */}
 
         <Box
           sx={{
@@ -652,58 +788,57 @@ function ServiceCard({
         >
           <DetailItem
             icon={<CalendarToday />}
-            title="Service Date"
+            title="Charging Date"
             value={formatDate(
-              service.serviceDate ||
-                service.date
+              charging.chargingDate
             )}
+          />
+
+          <DetailItem
+            icon={<Bolt />}
+            title="Energy"
+            value={`${formatNumber(
+              charging.units
+            )} kWh`}
           />
 
           <DetailItem
             icon={<Speed />}
             title="Odometer"
             value={`${formatNumber(
-              service.odometer
+              charging.odometer
             )} km`}
           />
 
           <DetailItem
             icon={<DirectionsCar />}
-            title="Garage"
+            title="Station"
             value={
-              service.garageName ||
+              charging.station ||
               "Not specified"
             }
-          />
-
-          <DetailItem
-            icon={<CurrencyRupee />}
-            title="Cost"
-            value={`₹${formatCurrency(
-              service.cost
-            )}`}
           />
         </Box>
 
         {/* NOTES */}
 
-        {service.notes && (
+        {charging.notes && (
           <Box
             sx={{
               mt: 1.5,
               p: 1.5,
               borderRadius: 2,
               backgroundColor:
-                "#f8fafc",
+                "#faf5fc",
               border:
-                "1px solid #e2e8f0",
+                "1px solid #f0dff5",
             }}
           >
             <Typography
               sx={{
                 fontSize: "11px",
                 fontWeight: 800,
-                color: "#64748b",
+                color: "#7b1fa2",
                 mb: 0.5,
                 textTransform:
                   "uppercase",
@@ -718,7 +853,7 @@ function ServiceCard({
                 color: "#475569",
               }}
             >
-              {service.notes}
+              {charging.notes}
             </Typography>
           </Box>
         )}
@@ -743,13 +878,13 @@ function ServiceCard({
               borderRadius: 2,
               textTransform: "none",
               fontWeight: 700,
-              borderColor: "#1565c0",
-              color: "#1565c0",
+              borderColor: "#7b1fa2",
+              color: "#7b1fa2",
 
               "&:hover": {
-                borderColor: "#0d47a1",
+                borderColor: "#6a1b9a",
                 backgroundColor:
-                  "#eaf2ff",
+                  "#faf5fc",
               },
             }}
           >
@@ -761,9 +896,9 @@ function ServiceCard({
   );
 }
 
-/* =================================================
-   DETAIL ITEM
-================================================= */
+// ==========================================
+// DETAIL ITEM
+// ==========================================
 
 function DetailItem({
   icon,
@@ -822,7 +957,8 @@ function DetailItem({
           overflow: "hidden",
           textOverflow:
             "ellipsis",
-          whiteSpace: "nowrap",
+          whiteSpace:
+            "nowrap",
         }}
       >
         {value}
@@ -831,9 +967,9 @@ function DetailItem({
   );
 }
 
-/* =================================================
-   STAT CARD
-================================================= */
+// ==========================================
+// STAT CARD
+// ==========================================
 
 function StatCard({
   icon,
@@ -920,11 +1056,11 @@ function StatCard({
   );
 }
 
-/* =================================================
-   EMPTY STATE
-================================================= */
+// ==========================================
+// EMPTY STATE
+// ==========================================
 
-function EmptyServices() {
+function EmptyCharging() {
   return (
     <Paper
       elevation={0}
@@ -940,10 +1076,10 @@ function EmptyServices() {
         backgroundColor: "#ffffff",
       }}
     >
-      <Build
+      <Bolt
         sx={{
-          fontSize: 50,
-          color: "#94a3b8",
+          fontSize: 55,
+          color: "#b0bec5",
           mb: 1,
         }}
       />
@@ -955,7 +1091,7 @@ function EmptyServices() {
           color: "#334155",
         }}
       >
-        No service records found
+        No charging entries found
       </Typography>
 
       <Typography
@@ -964,11 +1100,11 @@ function EmptyServices() {
           mt: 0.5,
         }}
       >
-        Your vehicle service records
+        Your EV charging records
         will appear here.
       </Typography>
     </Paper>
   );
 }
 
-export default Services;
+export default Charging;
